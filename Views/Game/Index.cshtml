@@ -1,0 +1,401 @@
+@model BanglaVowelEasy.Controllers.GameViewModel
+@{
+    ViewData["Title"] = "বাংলা স্বরবর্ণ পাজল (সহজ)";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>বাংলা স্বরবর্ণ পাজল (সহজ)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Segoe UI', sans-serif;
+            color: #fff;
+            padding: 20px 0;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+            color: #f0c040;
+            text-shadow: 0 2px 8px rgba(240,192,64,.4);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #aac;
+            margin-bottom: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 8px;
+            background: rgba(255,255,255,0.06);
+            padding: 14px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        }
+
+        .tile {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            transition: transform .12s ease, box-shadow .12s ease, background .2s;
+            background: linear-gradient(145deg, #e8a400, #c07800);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
+        }
+
+        .tile:hover {
+            transform: scale(1.06);
+            box-shadow: 0 6px 18px rgba(0,0,0,.5);
+        }
+
+        .tile.empty {
+            background: rgba(255,255,255,0.04);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,.4);
+            cursor: pointer;
+        }
+
+        .tile.empty.has-neighbour:hover {
+            background: rgba(255,255,255,0.12);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,.4), 0 0 10px rgba(240,192,64,.4);
+        }
+
+        .tile.empty.selected {
+            background: rgba(240,192,64,0.25);
+            box-shadow: 0 0 0 3px #f0c040, inset 0 2px 8px rgba(0,0,0,.3);
+            animation: blinkSelected 1s infinite;
+        }
+
+        @@keyframes blinkSelected {
+            0%, 100% { box-shadow: 0 0 0 3px #f0c040, inset 0 2px 8px rgba(0,0,0,.3); }
+            50%       { box-shadow: 0 0 0 3px rgba(240,192,64,.3), inset 0 2px 8px rgba(0,0,0,.3); }
+        }
+
+        .tile.movable {
+            background: linear-gradient(145deg, #2196f3, #1565c0);
+            animation: pulse 1.4s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(33,150,243,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+            50%       { box-shadow: 0 4px 22px rgba(33,150,243,.8), inset 0 1px 0 rgba(255,255,255,.3); }
+        }
+
+        .tile.can-move-to-selected {
+            background: linear-gradient(145deg, #f57c00, #e65100) !important;
+            animation: pulseOrange 1.2s infinite !important;
+        }
+
+        @@keyframes pulseOrange {
+            0%, 100% { box-shadow: 0 4px 12px rgba(245,124,0,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+            50%       { box-shadow: 0 4px 22px rgba(245,124,0,.8), inset 0 1px 0 rgba(255,255,255,.3); }
+        }
+
+        .tile.solved-pos {
+            background: linear-gradient(145deg, #43a047, #2e7d32);
+        }
+
+        .tile.speaking::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 70%);
+            animation: ripple .55s ease-out forwards;
+        }
+
+        @@keyframes ripple {
+            0%   { opacity: 1; transform: scale(0.4); }
+            100% { opacity: 0; transform: scale(1.6); }
+        }
+
+        .tile .wave-icon {
+            display: none;
+            position: absolute;
+            bottom: 5px;
+            right: 7px;
+            font-size: 0.75rem;
+            opacity: 0.85;
+            animation: waveBob .4s ease-in-out infinite alternate;
+        }
+
+        .tile.speaking .wave-icon { display: block; }
+
+        @@keyframes waveBob {
+            from { transform: scaleY(1); }
+            to   { transform: scaleY(1.5); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform .1s, box-shadow .1s;
+        }
+
+        #btnNew  { background: #e53935; color: #fff; box-shadow: 0 4px 12px rgba(229,57,53,.4); }
+        #btnNew:hover  { transform: translateY(-2px); }
+        #btnHint { background: #7b1fa2; color: #fff; box-shadow: 0 4px 12px rgba(123,31,162,.4); }
+        #btnHint:hover { transform: translateY(-2px); }
+        #btnMute { background: #00796b; color: #fff; box-shadow: 0 4px 12px rgba(0,121,107,.4); min-width: 52px; }
+        #btnMute:hover { transform: translateY(-2px); }
+        #btnMute.muted { background: #455a64; }
+
+        .message {
+            margin-top: 18px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            min-height: 34px;
+            color: #69ff69;
+            text-shadow: 0 0 12px rgba(100,255,100,.6);
+        }
+
+        .hint-panel {
+            margin-top: 16px;
+            background: rgba(255,255,255,0.08);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            color: #ddd;
+            display: none;
+        }
+        .hint-panel.show { display: block; }
+
+        .status-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #99aacc;
+        }
+
+        #voiceStatus { font-size: 0.75rem; color: #667; font-style: italic; }
+        .keyboard-hint { font-size: 0.75rem; color: #556; margin-top: 6px; }
+    </style>
+</head>
+<body>
+    <h1>বাংলা স্বরবর্ণ পাজল</h1>
+    <p class="subtitle">Bangla Vowel Puzzle — 4×4 Easy</p>
+
+    <div class="board" id="board"></div>
+
+    <div class="status-row">
+        <span>Moves: <strong id="moveCount">0</strong></span>
+        <span id="voiceStatus">Loading…</span>
+    </div>
+
+    <div class="controls">
+        <button id="btnNew">New Game</button>
+        <button id="btnHint">Hint</button>
+        <button id="btnMute" title="Toggle sound">🔊</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="hint-panel" id="hintPanel">
+        Goal order: <strong>অ আ ই ঈ উ ঊ ঋ এ ঐ ও ঔ ☐ ☐ ☐ ☐ ☐</strong>
+    </div>
+
+    <p class="keyboard-hint">Click a blank space then click a letter to move it &nbsp;|&nbsp; 🔊 = sound on/off</p>
+
+    <script>
+        const ROWS = 4, COLS = 4;
+        const solved = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SolvedBoard));
+
+        let board = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Board));
+        let moves = 0;
+        let muted = false;
+        let currentAudio = null;
+        let selectedBlank = null;
+
+        document.getElementById('voiceStatus').textContent = '🎙 Bengali (Google TTS)';
+        document.getElementById('voiceStatus').style.color = '#66cc88';
+
+        function speakLetter(letter) {
+            if (muted || !letter) return;
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            currentAudio = new Audio('/vowel_easy/Tts?text=' + encodeURIComponent(letter));
+            currentAudio.play().catch(() => {});
+        }
+
+        function speakSolved() {
+            if (muted) return;
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            currentAudio = new Audio('/vowel_easy/Tts?text=' + encodeURIComponent('সঠিক'));
+            currentAudio.play().catch(() => {});
+        }
+
+        function getNeighbours(idx) {
+            const r = Math.floor(idx / COLS), c = idx % COLS;
+            return [
+                [r-1,c],[r+1,c],[r,c-1],[r,c+1]
+            ].filter(([nr,nc]) => nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS)
+             .map(([nr,nc]) => nr * COLS + nc);
+        }
+
+        function render(speakIdx) {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            board.forEach((tile, idx) => {
+                const div = document.createElement('div');
+                div.className = 'tile' + (tile === '' ? ' empty' : '');
+
+                if (tile !== '') {
+                    const wave = document.createElement('span');
+                    wave.className = 'wave-icon';
+                    wave.textContent = '🔊';
+                    const label = document.createElement('span');
+                    label.textContent = tile;
+                    div.appendChild(label);
+                    div.appendChild(wave);
+
+                    const adjacentBlanks = getNeighbours(idx).filter(ni => board[ni] === '');
+                    if (adjacentBlanks.length > 0) div.classList.add('movable');
+                    if (selectedBlank !== null && adjacentBlanks.includes(selectedBlank))
+                        div.classList.add('can-move-to-selected');
+
+                    const solvedIdx = solved.indexOf(tile);
+                    if (idx === solvedIdx) div.classList.add('solved-pos');
+
+                    if (speakIdx === idx) {
+                        div.classList.add('speaking');
+                        setTimeout(() => div.classList.remove('speaking'), 600);
+                    }
+
+                    div.addEventListener('click', () => {
+                        if (selectedBlank !== null) {
+                            if (adjacentBlanks.includes(selectedBlank)) {
+                                const target = selectedBlank;
+                                selectedBlank = null;
+                                tryMove(idx, target);
+                            } else {
+                                selectedBlank = null;
+                                render();
+                            }
+                        } else {
+                            if (adjacentBlanks.length === 1) tryMove(idx, adjacentBlanks[0]);
+                        }
+                    });
+                } else {
+                    const adjacentTiles = getNeighbours(idx).filter(ni => board[ni] !== '');
+                    if (adjacentTiles.length > 0) {
+                        div.classList.add('has-neighbour');
+                        if (selectedBlank === idx) div.classList.add('selected');
+                        div.addEventListener('click', () => {
+                            selectedBlank = selectedBlank === idx ? null : idx;
+                            render();
+                        });
+                    }
+                }
+
+                boardEl.appendChild(div);
+            });
+
+            document.getElementById('moveCount').textContent = moves;
+            const isSolved = board.every((t, i) => t === solved[i]);
+            document.getElementById('message').textContent = isSolved ? '🎉 Solved! সঠিক! 🎉' : '';
+            if (isSolved) speakSolved();
+        }
+
+        function tryMove(tileIdx, blankIdx) {
+            speakLetter(board[tileIdx]);
+            fetch('/vowel_easy/Game/Move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tileIndex: tileIdx, blankIndex: blankIdx ?? -1 })
+            })
+            .then(r => r.json())
+            .then(data => {
+                board = data.board;
+                moves++;
+                render(blankIdx);
+            });
+        }
+
+        document.getElementById('btnNew').addEventListener('click', () => {
+            fetch('/vowel_easy/Game/NewGame', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    board = data.board;
+                    moves = 0;
+                    selectedBlank = null;
+                    document.getElementById('hintPanel').classList.remove('show');
+                    document.getElementById('message').textContent = '';
+                    render();
+                });
+        });
+
+        document.getElementById('btnHint').addEventListener('click', () => {
+            document.getElementById('hintPanel').classList.toggle('show');
+        });
+
+        document.getElementById('btnMute').addEventListener('click', () => {
+            muted = !muted;
+            const btn = document.getElementById('btnMute');
+            btn.textContent = muted ? '🔇' : '🔊';
+            btn.classList.toggle('muted', muted);
+            if (muted && currentAudio) { currentAudio.pause(); currentAudio = null; }
+        });
+
+        document.addEventListener('keydown', e => {
+            const emptyIdxes = board.map((t,i) => t === '' ? i : -1).filter(i => i !== -1);
+            let targetIdx = -1;
+            emptyIdxes.forEach(emptyIdx => {
+                const er = Math.floor(emptyIdx / COLS), ec = emptyIdx % COLS;
+                let tr = er, tc = ec;
+                if      (e.key === 'ArrowUp'    && er < ROWS-1) tr = er+1;
+                else if (e.key === 'ArrowDown'  && er > 0)      tr = er-1;
+                else if (e.key === 'ArrowLeft'  && ec < COLS-1) tc = ec+1;
+                else if (e.key === 'ArrowRight' && ec > 0)      tc = ec-1;
+                else return;
+                const ti = tr * COLS + tc;
+                if (board[ti] !== '') targetIdx = ti;
+            });
+            if (targetIdx !== -1) {
+                e.preventDefault();
+                const blanks = getNeighbours(targetIdx).filter(ni => board[ni] === '');
+                if (blanks.length > 0) tryMove(targetIdx, blanks[0]);
+            }
+        });
+
+        render();
+    </script>
+</body>
+</html>
