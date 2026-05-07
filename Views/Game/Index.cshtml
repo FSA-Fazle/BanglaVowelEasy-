@@ -207,6 +207,25 @@
 
         #voiceStatus { font-size: 0.75rem; color: #667; font-style: italic; }
         .keyboard-hint { font-size: 0.75rem; color: #556; margin-top: 6px; }
+
+        .version-link {
+            margin-top: 14px;
+            font-size: 0.9rem;
+        }
+
+        .version-link a {
+            color: #f0c040;
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1px solid #f0c040;
+            border-radius: 20px;
+            transition: background .2s, color .2s;
+        }
+
+        .version-link a:hover {
+            background: #f0c040;
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -233,6 +252,7 @@
     </div>
 
     <p class="keyboard-hint">Click a blank space then click a letter to move it &nbsp;|&nbsp; 🔊 = sound on/off</p>
+    <p class="version-link"><a href="https://banglaclass.ca/vowel/">⬆ Harder Version: Challenge Yourself</a></p>
 
     <script>
         const ROWS = 4, COLS = 4;
