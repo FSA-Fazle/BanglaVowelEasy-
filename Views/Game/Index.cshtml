@@ -279,7 +279,7 @@
         function speakSolved() {
             if (muted) return;
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            currentAudio = new Audio('/vowel_easy/Tts?text=' + encodeURIComponent('সঠিক'));
+            currentAudio = new Audio('/vowel_easy/Tts?text=' + encodeURIComponent('ঠিক হয়েছে'));
             currentAudio.play().catch(() => {});
         }
 
@@ -376,7 +376,7 @@
 
             document.getElementById('moveCount').textContent = moves;
             const isSolved = board.every((t, i) => t === solved[i]);
-            document.getElementById('message').textContent = isSolved ? '🎉 Solved! সঠিক! 🎉' : '';
+            document.getElementById('message').textContent = isSolved ? '🎉 Solved! ঠিক হয়েছে! 🎉' : '';
             if (isSolved && !celebrationPlayed) {
                 celebrationPlayed = true;
                 speakSolved();
