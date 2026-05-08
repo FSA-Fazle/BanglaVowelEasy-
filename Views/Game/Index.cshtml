@@ -264,6 +264,7 @@
         let muted = false;
         let currentAudio = null;
         let selectedBlank = null;
+        let celebrationPlayed = false;
 
         document.getElementById('voiceStatus').textContent = '🎙 Bengali (Google TTS)';
         document.getElementById('voiceStatus').style.color = '#66cc88';
@@ -280,6 +281,30 @@
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             currentAudio = new Audio('/vowel_easy/Tts?text=' + encodeURIComponent('সঠিক'));
             currentAudio.play().catch(() => {});
+        }
+
+        function playCelebration() {
+            if (muted) return;
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            const ctx = new AC();
+            const notes = [
+                [0.00, 523.25, 0.14], [0.14, 659.25, 0.14], [0.28, 783.99, 0.14],
+                [0.42, 1046.5, 0.40], [0.82, 783.99, 0.14], [0.96, 1046.5, 0.70],
+            ];
+            notes.forEach(([t, f, d]) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'triangle'; osc.frequency.value = f;
+                const s = ctx.currentTime + t;
+                gain.gain.setValueAtTime(0, s);
+                gain.gain.linearRampToValueAtTime(0.25, s + 0.02);
+                gain.gain.setValueAtTime(0.25, s + d - 0.05);
+                gain.gain.linearRampToValueAtTime(0, s + d);
+                osc.start(s); osc.stop(s + d + 0.01);
+            });
+            setTimeout(() => ctx.close(), 3000);
         }
 
         function getNeighbours(idx) {
@@ -352,7 +377,11 @@
             document.getElementById('moveCount').textContent = moves;
             const isSolved = board.every((t, i) => t === solved[i]);
             document.getElementById('message').textContent = isSolved ? '🎉 Solved! সঠিক! 🎉' : '';
-            if (isSolved) speakSolved();
+            if (isSolved && !celebrationPlayed) {
+                celebrationPlayed = true;
+                speakSolved();
+                playCelebration();
+            }
         }
 
         function tryMove(tileIdx, blankIdx) {
@@ -377,6 +406,7 @@
                     board = data.board;
                     moves = 0;
                     selectedBlank = null;
+                    celebrationPlayed = false;
                     document.getElementById('hintPanel').classList.remove('show');
                     document.getElementById('message').textContent = '';
                     render();
